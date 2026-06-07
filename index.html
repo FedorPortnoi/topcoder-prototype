@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Topcoder UI/UX Prototype — Clickthrough</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --accent:    #f5a623;
+      --accent2:   #1d6fa4;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --sidebar-w: 220px;
+      --header-h:  56px;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── TOP HEADER ─────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: var(--header-h);
+      padding: 0 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    header .logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    header .screen-title {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    header .nav-btns {
+      display: flex;
+      gap: 8px;
+    }
+    header .nav-btns button {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    header .nav-btns button:hover:not(:disabled) {
+      background: var(--accent2);
+      border-color: var(--accent2);
+    }
+    header .nav-btns button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    header .counter {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    /* ── BODY ROW ────────────────────────────────────────────── */
+    .body-row {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────── */
+    aside {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    aside .sidebar-label {
+      padding: 12px 14px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .thumb-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .thumb-item:hover { background: rgba(255,255,255,0.04); }
+    .thumb-item.active {
+      background: rgba(245,166,35,0.08);
+      border-left-color: var(--accent);
+    }
+    .thumb-item img {
+      width: 100%;
+      max-width: 180px;
+      height: 90px;
+      object-fit: cover;
+      object-position: top left;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      display: block;
+    }
+    .thumb-item.active img { border-color: var(--accent); }
+    .thumb-item .thumb-label {
+      font-size: 10px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.35;
+      width: 100%;
+    }
+    .thumb-item.active .thumb-label { color: var(--accent); }
+
+    /* ── MAIN STAGE ──────────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 16px;
+      position: relative;
+    }
+
+    /* The wrapper keeps the image + hotspots together and scales as a unit */
+    .stage-wrapper {
+      position: relative;
+      display: inline-flex;      /* shrinks to image natural size then we constrain */
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .stage-wrapper img {
+      display: block;
+      max-width: 100%;
+      max-height: calc(100vh - var(--header-h) - 48px);
+      object-fit: contain;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      user-select: none;
+    }
+
+    /* Hotspot overlay — children are positioned in % relative to the image */
+    .hotspot-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;   /* layer itself passes through; children opt-in */
+    }
+    .hotspot {
+      position: absolute;
+      pointer-events: all;
+      cursor: pointer;
+      /* Uncomment for visual debug: */
+      /* background: rgba(245,166,35,0.25); border: 2px dashed #f5a623; */
+    }
+    .hotspot:hover {
+      background: rgba(245,166,35,0.12);
+      border-radius: 4px;
+      outline: 2px solid rgba(245,166,35,0.4);
+    }
+
+    /* ── HINT BAR ────────────────────────────────────────────── */
+    .hint-bar {
+      position: fixed;
+      bottom: 14px;
+      left: calc(var(--sidebar-w) + 50%);
+      transform: translateX(-50%);
+      background: rgba(13,17,23,0.85);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(6px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--muted);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* ── TRANSITION ─────────────────────────────────────────── */
+    .stage-wrapper { transition: opacity 0.18s ease; }
+    .stage-wrapper.fading { opacity: 0; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Topcoder&nbsp;·&nbsp;Prototype</div>
+  <div class="screen-title" id="screenTitle"></div>
+  <div class="nav-btns">
+    <button id="btnPrev" onclick="navigate(-1)">&#8592; Prev</button>
+    <span class="counter" id="counter"></span>
+    <button id="btnNext" onclick="navigate(1)">Next &#8594;</button>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="body-row">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-label">Screens</div>
+    <div id="thumbList"></div>
+  </aside>
+
+  <!-- STAGE -->
+  <main id="mainStage">
+    <div class="stage-wrapper" id="stageWrapper">
+      <img id="mainImg" src="" alt="Screen" draggable="false" />
+      <div class="hotspot-layer" id="hotspotLayer"></div>
+    </div>
+  </main>
+
+</div>
+
+<!-- HINT -->
+<div class="hint-bar" id="hintBar">Click highlighted areas to navigate · Use Prev/Next or sidebar to jump</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const screens = [
+  {
+    id: 1,
+    file: "1-opportunities-listing-desktop.png",
+    title: "1 · Opportunities Listing — Desktop",
+    shortTitle: "Opportunities (Desktop)",
+    hotspots: [
+      // Clicking any challenge card row → screen 3
+      // Cards typically occupy the central list area: ~8% from left, 20–85% width, rows stacked
+      // We cover the main card list area with one large hotspot
+      { top: "18%", left: "6%", width: "88%", height: "68%", target: 3,
+        hint: "Click a challenge card to view details" }
+    ]
+  },
+  {
+    id: 2,
+    file: "2-opportunities-listing-mobile.png",
+    title: "2 · Opportunities Listing — Mobile",
+    shortTitle: "Opportunities (Mobile)",
+    hotspots: [
+      // Full card area on mobile — cards are full-width stacked
+      { top: "15%", left: "3%", width: "94%", height: "75%", target: 3,
+        hint: "Tap a challenge card to view details" }
+    ]
+  },
+  {
+    id: 3,
+    file: "3-challenge-details-desktop.png",
+    title: "3 · Challenge Details — Desktop",
+    shortTitle: "Challenge Details",
+    hotspots: [
+      // Register / Submit button — bottom-right quadrant
+      { top: "78%", left: "62%", width: "32%", height: "14%", target: 4,
+        hint: "Click Register / Submit to proceed" }
+    ]
+  },
+  {
+    id: 4,
+    file: "4-submission-upload-desktop.png",
+    title: "4 · Submission Upload — Desktop",
+    shortTitle: "Submission Upload",
+    hotspots: [
+      // Back arrow — top-left area
+      { top: "3%", left: "1%", width: "12%", height: "10%", target: 3,
+        hint: "Back to Challenge Details" },
+      // Submit button — bottom area
+      { top: "78%", left: "25%", width: "50%", height: "14%", target: 5,
+        hint: "Submit your work" }
+    ]
+  },
+  {
+    id: 5,
+    file: "5-manage-submission-desktop.png",
+    title: "5 · Manage Submission — Desktop",
+    shortTitle: "Manage Submission",
+    hotspots: [
+      // Full screen click → review
+      { top: "5%", left: "5%", width: "90%", height: "88%", target: 6,
+        hint: "Click anywhere to review the opportunity" }
+    ]
+  },
+  {
+    id: 6,
+    file: "6-review-opportunity-desktop.png",
+    title: "6 · Review Opportunity — Desktop",
+    shortTitle: "Review Opportunity",
+    hotspots: [
+      // Back arrow — top-left
+      { top: "3%", left: "1%", width: "12%", height: "10%", target: 5,
+        hint: "Back to Manage Submission" }
+    ]
+  }
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let current = 0;   // index into screens[]
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+(function init() {
+  const list = document.getElementById("thumbList");
+  screens.forEach((s, i) => {
+    const item = document.createElement("div");
+    item.className = "thumb-item";
+    item.id = `thumb-${i}`;
+    item.innerHTML = `
+      <img src="${s.file}" alt="${s.shortTitle}" loading="lazy" />
+      <div class="thumb-label">${s.shortTitle}</div>
+    `;
+    item.addEventListener("click", () => goTo(i));
+    list.appendChild(item);
+  });
+  goTo(0, true);
+})();
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function navigate(delta) {
+  const next = current + delta;
+  if (next >= 0 && next < screens.length) goTo(next);
+}
+
+function goToById(screenId) {
+  const idx = screens.findIndex(s => s.id === screenId);
+  if (idx !== -1) goTo(idx);
+}
+
+function goTo(idx, immediate) {
+  const wrapper = document.getElementById("stageWrapper");
+
+  function applyScreen() {
+    current = idx;
+    const s = screens[idx];
+    document.getElementById("mainImg").src = s.file;
+    document.getElementById("mainImg").alt = s.title;
+    document.getElementById("screenTitle").textContent = s.title;
+    document.getElementById("counter").textContent = `${idx + 1} / ${screens.length}`;
+    document.getElementById("btnPrev").disabled = idx === 0;
+    document.getElementById("btnNext").disabled = idx === screens.length - 1;
+
+    // Update sidebar active state
+    document.querySelectorAll(".thumb-item").forEach((el, i) => {
+      el.classList.toggle("active", i === idx);
+    });
+    // Scroll sidebar thumb into view
+    const thumb = document.getElementById(`thumb-${idx}`);
+    if (thumb) thumb.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
+    // Rebuild hotspots
+    buildHotspots(s.hotspots);
+
+    // Fade back in
+    wrapper.classList.remove("fading");
+  }
+
+  if (immediate) {
+    applyScreen();
+    return;
+  }
+
+  wrapper.classList.add("fading");
+  setTimeout(applyScreen, 170);
+}
+
+// ─── HOTSPOTS ────────────────────────────────────────────────────────────────
+function buildHotspots(hotspots) {
+  const layer = document.getElementById("hotspotLayer");
+  layer.innerHTML = "";
+
+  hotspots.forEach(h => {
+    const div = document.createElement("div");
+    div.className = "hotspot";
+    div.style.top    = h.top;
+    div.style.left   = h.left;
+    div.style.width  = h.width;
+    div.style.height = h.height;
+    div.title = h.hint || "";
+    div.addEventListener("click", () => goToById(h.target));
+    layer.appendChild(div);
+  });
+
+  // Update hint bar with primary hint
+  const hint = document.getElementById("hintBar");
+  if (hotspots.length > 0) {
+    hint.textContent = hotspots.map(h => h.hint).filter(Boolean).join("  ·  ");
+  } else {
+    hint.textContent = "No interactive areas on this screen — use Prev/Next or sidebar";
+  }
+}
+</script>
+</body>
+</html>
